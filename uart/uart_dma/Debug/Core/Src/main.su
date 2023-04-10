@@ -1,4 +1,4 @@
-../Core/Src/main.c:70:5:main	8	static
-../Core/Src/main.c:115:6:SystemClock_Config	120	static
-../Core/Src/main.c:174:1:__io_putchar	16	static
-../Core/Src/main.c:187:6:Error_Handler	4	static,ignoring_inline_asm
+../Core/Src/main.c:72:5:main	8	static
+../Core/Src/main.c:117:6:SystemClock_Config	120	static
+../Core/Src/main.c:176:1:__io_putchar	16	static
+../Core/Src/main.c:189:6:Error_Handler	4	static,ignoring_inline_asm

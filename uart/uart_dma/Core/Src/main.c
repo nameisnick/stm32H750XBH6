@@ -56,6 +56,8 @@ void SystemClock_Config(void);
 #else
 #define PUTCHAR_PROTOTYPE int fputc(int ch, FILE *f)
 #endif /* __GNUC__ */
+
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/

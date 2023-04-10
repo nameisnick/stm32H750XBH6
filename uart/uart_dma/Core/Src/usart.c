@@ -105,7 +105,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef* uartHandle)
     __HAL_RCC_GPIOA_CLK_ENABLE();
     /**UART4 GPIO Configuration
     PI9     ------> UART4_RX
-    PA0_C     ------> UART4_TX
+    PA0     ------> UART4_TX
     */
     GPIO_InitStruct.Pin = GPIO_PIN_9;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
@@ -143,7 +143,7 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef* uartHandle)
 
     /**UART4 GPIO Configuration
     PI9     ------> UART4_RX
-    PA0_C     ------> UART4_TX
+    PA0     ------> UART4_TX
     */
     HAL_GPIO_DeInit(GPIOI, GPIO_PIN_9);
 
@@ -158,8 +158,9 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef* uartHandle)
 }
 
 /* USER CODE BEGIN 1 */
+
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
-  if(huart->Instance == &huart4){
+  if(huart->Instance == UART4){
     HAL_UART_Receive_IT(&huart4, &uart_rx_data, 1);
     printf("%c\r\n",uart_rx_data);
   }
