@@ -18,12 +18,13 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "dma.h"
 #include "usart.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include <string.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -43,7 +44,11 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-extern volatile uint8_t uart_rx_data;
+extern volatile uint8_t uart4_rx_data;
+extern volatile uint8_t uart4_rx_buff[100];
+extern volatile uint8_t uart4_rx_cplt_flag;
+extern volatile uint8_t uart4_tx_cplt_flag;
+extern volatile uint8_t uart4_tx_buff[100];
 
 /* USER CODE END PV */
 
@@ -93,16 +98,53 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_UART4_Init();
   /* USER CODE BEGIN 2 */
-  HAL_UART_Receive_IT(&huart4, &uart_rx_data, 1);
+  HAL_UART_Receive_IT(&huart4, &uart4_rx_data, 1);
   printf("start main\r\n");
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  uint8_t print_buf[100] = {0,};
+  for (int i = 0; i < 100; i++)
+  {
+    if(i % 10 )
+      uart4_tx_buff[i] = 'z';
+    else
+      uart4_tx_buff[i] = '0';
+  }
+  uart4_tx_buff[99] = '\n';
+
+  uint32_t pretime = HAL_GetTick();
+  //HAL_UART_Transmit_DMA(&huart4, uart4_tx_buff, sizeof (uart4_tx_buff));
+  uint32_t curtime = HAL_GetTick();
+
+
+
+
   while (1)
   {
+    HAL_Delay(1000);
+    if(uart4_rx_cplt_flag){
+      pretime = HAL_GetTick();
+      //printf("%s\r\n", uart4_rx_buff);
+      //printf("time : %d", curtime - pretime);
+      HAL_UART_Transmit_DMA(&huart4, uart4_tx_buff, sizeof (uart4_tx_buff));
+      curtime = HAL_GetTick();
+      //
+
+      uart4_rx_cplt_flag = 0;
+    }
+
+
+    if(uart4_tx_cplt_flag){
+      HAL_UART_Transmit(&huart4, uart4_tx_buff,sizeof(uart4_tx_buff),0xFFFF);
+      sprintf(print_buf, "time : %d\r\n", curtime - pretime);
+      HAL_UART_Transmit(&huart4, print_buf, strlen(print_buf), 0xFFFF);
+      uart4_tx_cplt_flag = 0;
+    }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
