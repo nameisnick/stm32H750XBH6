@@ -18,7 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include "dma.h"
+#include "cmsis_os.h"
 #include "usart.h"
 #include "gpio.h"
 
@@ -48,12 +48,14 @@ extern volatile uint8_t uart4_rx_data;
 extern volatile uint8_t uart4_rx_buff[100];
 extern volatile uint8_t uart4_rx_cplt_flag;
 extern volatile uint8_t uart4_tx_cplt_flag;
-extern volatile uint8_t uart4_tx_buff[100];
+volatile uint8_t uart4_tx_buf[100];
+
 
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
+void MX_FREERTOS_Init(void);
 /* USER CODE BEGIN PFP */
 #ifdef __GNUC__
 //With GCC, small printf (option LD Linker->Libraries->Small printf set to 'Yes') calls __io_putchar()
@@ -61,8 +63,6 @@ void SystemClock_Config(void);
 #else
 #define PUTCHAR_PROTOTYPE int fputc(int ch, FILE *f)
 #endif /* __GNUC__ */
-
-
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -98,53 +98,42 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_DMA_Init();
   MX_UART4_Init();
   /* USER CODE BEGIN 2 */
+  printf("start main()\r\n");
   HAL_UART_Receive_IT(&huart4, &uart4_rx_data, 1);
-  printf("start main\r\n");
   /* USER CODE END 2 */
 
+  /* Init scheduler */
+  osKernelInitialize();  /* Call init function for freertos objects (in freertos.c) */
+  MX_FREERTOS_Init();
+
+  /* Start scheduler */
+  osKernelStart();
+  /* We should never get here as control is now taken by the scheduler */
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  uint8_t print_buf[100] = {0,};
-  for (int i = 0; i < 100; i++)
-  {
-    if(i % 10 )
-      uart4_tx_buff[i] = 'z';
-    else
-      uart4_tx_buff[i] = '0';
-  }
-  uart4_tx_buff[99] = '\n';
-
-  uint32_t pretime = HAL_GetTick();
-  //HAL_UART_Transmit_DMA(&huart4, uart4_tx_buff, sizeof (uart4_tx_buff));
-  uint32_t curtime = HAL_GetTick();
-
-
-
-
+  //uint32_t pretime;
+  //uint32_t curtime;
   while (1)
   {
-    HAL_Delay(1000);
+/*
     if(uart4_rx_cplt_flag){
       pretime = HAL_GetTick();
-      //printf("%s\r\n", uart4_rx_buff);
-      //printf("time : %d", curtime - pretime);
-      HAL_UART_Transmit_DMA(&huart4, uart4_tx_buff, sizeof (uart4_tx_buff));
+      //printf("%s\r\n", uart_rx_buff);
+      sprintf(uart4_tx_buf, "%s\r\n",uart4_rx_buff);
+      HAL_UART_Transmit_IT(&huart4, uart4_tx_buf, strlen(uart4_tx_buf));
       curtime = HAL_GetTick();
-      //
-
       uart4_rx_cplt_flag = 0;
+      printf("time : %d\r\n",curtime - pretime);
     }
-
 
     if(uart4_tx_cplt_flag){
-      HAL_UART_Transmit(&huart4, uart4_tx_buff,sizeof(uart4_tx_buff),0xFFFF);
-      sprintf(print_buf, "time : %d\r\n", curtime - pretime);
-      HAL_UART_Transmit(&huart4, print_buf, strlen(print_buf), 0xFFFF);
+      printf("time : %d\r\n",curtime - pretime);
       uart4_tx_cplt_flag = 0;
     }
+*/
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -167,13 +156,9 @@ void SystemClock_Config(void)
 
   /** Configure the main internal regulator output voltage
   */
-  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE0);
+  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
 
   while(!__HAL_PWR_GET_FLAG(PWR_FLAG_VOSRDY)) {}
-
-  /** Macro to configure the PLL clock source
-  */
-  __HAL_RCC_PLL_PLLSOURCE_CONFIG(RCC_PLLSOURCE_HSE);
 
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
@@ -183,7 +168,7 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
   RCC_OscInitStruct.PLL.PLLM = 5;
-  RCC_OscInitStruct.PLL.PLLN = 192;
+  RCC_OscInitStruct.PLL.PLLN = 160;
   RCC_OscInitStruct.PLL.PLLP = 2;
   RCC_OscInitStruct.PLL.PLLQ = 2;
   RCC_OscInitStruct.PLL.PLLR = 2;
@@ -208,7 +193,7 @@ void SystemClock_Config(void)
   RCC_ClkInitStruct.APB2CLKDivider = RCC_APB2_DIV2;
   RCC_ClkInitStruct.APB4CLKDivider = RCC_APB4_DIV2;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_4) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
   {
     Error_Handler();
   }
@@ -219,10 +204,31 @@ PUTCHAR_PROTOTYPE
 {
 /* Place your implementation of fputc here */
 /* e.g. write a character to the USART3 and Loop until the end of transmission */
-  HAL_UART_Transmit (&huart4, (uint8_t*) &ch, 1, 0xFFFF);
+  HAL_UART_Transmit(&huart4, (uint8_t*) &ch, 1, 0xFFFF);
   return ch;
 }
 /* USER CODE END 4 */
+
+/**
+  * @brief  Period elapsed callback in non blocking mode
+  * @note   This function is called  when TIM6 interrupt took place, inside
+  * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
+  * a global variable "uwTick" used as application time base.
+  * @param  htim : TIM handle
+  * @retval None
+  */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  /* USER CODE BEGIN Callback 0 */
+
+  /* USER CODE END Callback 0 */
+  if (htim->Instance == TIM6) {
+    HAL_IncTick();
+  }
+  /* USER CODE BEGIN Callback 1 */
+
+  /* USER CODE END Callback 1 */
+}
 
 /**
   * @brief  This function is executed in case of error occurrence.
