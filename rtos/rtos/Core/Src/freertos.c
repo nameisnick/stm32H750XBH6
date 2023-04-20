@@ -139,7 +139,8 @@ void StartDefaultTask(void *argument)
   /* Infinite loop */
   for(;;)
   {
-    printf("task 1\r\n");
+    //printf("task 1\r\n");
+    HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_6);
     osDelay(1000);
   }
   /* USER CODE END StartDefaultTask */
@@ -158,7 +159,7 @@ void StartTask02(void *argument)
   /* Infinite loop */
   for(;;)
   {
-    printf("task  2 \r\n");
+    HAL_GPIO_TogglePin(GPIOG, GPIO_PIN_7);
     osDelay(2000);
   }
   /* USER CODE END StartTask02 */
@@ -177,7 +178,7 @@ void StartTask03(void *argument)
   /* Infinite loop */
   for(;;)
   {
-    printf("task   3\r\n");
+    HAL_GPIO_TogglePin(GPIOH, GPIO_PIN_8);
     osDelay(3000);
   }
   /* USER CODE END StartTask03 */
